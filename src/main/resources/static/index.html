@@ -16,7 +16,7 @@
 <button onclick="getMessages()">Esegui GET</button>
 
 <h2>Cancella un messaggio</h2>
-<input type="number" id="deleteId" placeholder="ID del messaggio da cancellare">
+<input type="text" id="deletetext" placeholder="testo del messaggio da cancellare">
 <button onclick="deleteMessage()">Esegui DELETE</button>
 
 <h2>Risultato</h2>
@@ -69,10 +69,14 @@ async function createMessage() {
 
 async function deleteMessage() {
     try {
-        const id = document.getElementById("deleteId").value;
+        const text = document.getElementById("deletetext").value;
 
-        const response = await fetch(`/api/messages/${id}`, {
-            method: "DELETE"
+        const response = await fetch(`/api/messages`, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ text: text })
         });
 
         if (!response.ok) {
