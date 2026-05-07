@@ -18,4 +18,9 @@ return repo.findAll();
 public Message create(@RequestBody Message msg) {
 return repo.save(msg);
 }
+
+@DeleteMapping
+public void delete(@RequestBody Message msg) {
+    List<Message> messagesToDelete = repo.findById(msg.getText());
+    repo.deleteAll(messagesToDelete);
 }
