@@ -20,10 +20,8 @@ return repo.save(msg);
 }
 
 @DeleteMapping
-public Map<String, Integer> delete(@RequestBody Message msg) {
+public void delete(@RequestBody Message msg) {
     List<Message> messagesToDelete = repo.findByText(msg.getText());
-    int count = messagesToDelete.size();
     repo.deleteAll(messagesToDelete);
-    return Map.of("deleted", count);
 }
 }
