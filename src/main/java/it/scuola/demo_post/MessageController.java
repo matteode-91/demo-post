@@ -18,10 +18,12 @@ return repo.findAll();
 public Message create(@RequestBody Message msg) {
 return repo.save(msg);
 }
+
 @DeleteMapping
-@DeleteMapping
-public void delete(@RequestBody Message msg) {
+public Map<String, Integer> delete(@RequestBody Message msg) {
     List<Message> messagesToDelete = repo.findByText(msg.getText());
+    int count = messagesToDelete.size();
     repo.deleteAll(messagesToDelete);
+    return Map.of("deleted", count);
 }
 }
