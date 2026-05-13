@@ -16,7 +16,6 @@
 <button onclick="getMessages()">Esegui GET</button>
 
 <h2>Cancella un messaggio</h2>
-<input type="text" id="deletebytext" placeholder="Testo del messaggio da cancellare">
 <button onclick="deleteMessage()">Esegui DELETE</button>
 
 <h2>Risultato</h2>
@@ -66,12 +65,11 @@ async function createMessage() {
             "Errore POST: " + error.message;
     }
 }
-
 async function deleteMessage() {
     try {
-        const text = document.getElementById("deletebytext").value;
+        const text = document.getElementById("text").value;
 
-        const response = await fetch(`/api/messages`, {
+        const response = await fetch("/api/messages", {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json"
@@ -84,7 +82,7 @@ async function deleteMessage() {
         }
 
         document.getElementById("result").innerText =
-            "Messaggio cancellato con successo";
+            "Messaggio cancellato: " + text;
 
     } catch (error) {
         document.getElementById("result").innerText =
