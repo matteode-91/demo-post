@@ -2,93 +2,189 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Demo Spring API</title>
+    <title>Demo client-server</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 40px;
+            max-width: 900px;
+            background: linear-gradient(180deg, #eef2ff 0%, #ffffff 60%);
+            color: #1f2937;
+        }
+        h2 {
+            margin-top: 30px;
+        }
+        .row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 280px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            background-color: #007bff;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #99c3ff;
+            cursor: not-allowed;
+        }
+        #result {
+            min-height: 150px;
+            background: #f7f7f7;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 16px;
+            white-space: pre-wrap;
+            font-family: Consolas, Monaco, monospace;
+        }
+        .status {
+            margin-top: 10px;
+            font-weight: 600;
+        }
+        .status.success {
+            color: #1a7f37;
+        }
+        .status.error {
+            color: #c0392b;
+        }
+    </style>
 </head>
 <body>
 
-<h1>Test API Spring + H2</h1>
+<center><h1><span style="color: #0d6efd;">Test API MessageController + H2 database (in memory)</span></h1></center><br>
 
 <h2>Inserisci un messaggio</h2>
-<input type="text" id="text" placeholder="Scrivi un messaggio">
-<button onclick="createMessage()">Invia POST</button>
+<div class="row">
+    <input type="text" id="text" placeholder="Scrivi un messaggio" autocomplete="off">
+    <button id="postButton">Invia POST</button>
+</div>
 
 <h2>Leggi tutti i messaggi</h2>
-<button onclick="getMessages()">Esegui GET</button>
+<div class="row">
+    <button id="getButton">Esegui GET</button>
+</div>
 
 <h2>Cancella un messaggio</h2>
-<input type="text" id="deleteText" placeholder="messaggio da cancellare">
-<button onclick="deleteMessage()">Esegui DELETE</button>
+<div class="row">
+    <input type="text" id="deleteText" placeholder="Messaggio da cancellare" autocomplete="off">
+    <button id="deleteButton">Esegui DELETE</button>
+</div>
 
 <h2>Risultato</h2>
-<pre id="result"></pre>
+<pre id="result">Premi un pulsante per iniziare.</pre>
+<div id="status" class="status"></div>
 
 <script>
-async function getMessages() {
-    try {
-        const response = await fetch("/api/messages");
+const resultEl = document.getElementById('result');
+const statusEl = document.getElementById('status');
+const getButton = document.getElementById('getButton');
+const postButton = document.getElementById('postButton');
+const deleteButton = document.getElementById('deleteButton');
+const textInput = document.getElementById('text');
+const deleteInput = document.getElementById('deleteText');
 
-        if (!response.ok) {
-            throw new Error("Errore HTTP: " + response.status);
-        }
+getButton.addEventListener('click', () => performRequest(getMessages, getButton));
+postButton.addEventListener('click', () => performRequest(createMessage, postButton));
+deleteButton.addEventListener('click', () => performRequest(deleteMessage, deleteButton));
 
-        const data = await response.json();
-        document.getElementById("result").innerText =
-            JSON.stringify(data, null, 2);
-
-    } catch (error) {
-        document.getElementById("result").innerText =
-            "Errore GET: " + error.message;
+textInput.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+        performRequest(createMessage, postButton);
     }
+});
+
+deleteInput.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+        performRequest(deleteMessage, deleteButton);
+    }
+});
+
+async function performRequest(action, button) {
+    try {
+        setStatus('In corso...', '');
+        setButtonsEnabled(false);
+        const originalText = button.textContent;
+        button.textContent = 'Caricamento...';
+        await action();
+        button.textContent = originalText;
+    } catch (error) {
+        setStatus(error.message, 'error');
+    } finally {
+        setButtonsEnabled(true);
+    }
+}
+
+function setButtonsEnabled(enabled) {
+    getButton.disabled = !enabled;
+    postButton.disabled = !enabled;
+    deleteButton.disabled = !enabled;
+}
+
+function setStatus(message, type) {
+    statusEl.textContent = message;
+    statusEl.className = type ? `status ${type}` : 'status';
+}
+
+async function getMessages() {
+    const response = await fetch('/api/messages');
+    if (!response.ok) {
+        throw new Error('Errore GET: ' + response.status);
+    }
+    const data = await response.json();
+    resultEl.textContent = JSON.stringify(data, null, 2);
+    setStatus('GET completato con successo.', 'success');
 }
 
 async function createMessage() {
-    try {
-        const text = document.getElementById("text").value;
-
-        const response = await fetch("/api/messages", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ text: text })
-        });
-
-        if (!response.ok) {
-            throw new Error("Errore HTTP: " + response.status);
-        }
-
-        const data = await response.json();
-        document.getElementById("result").innerText =
-            "Messaggio inserito:\n" + JSON.stringify(data, null, 2);
-
-    } catch (error) {
-        document.getElementById("result").innerText =
-            "Errore POST: " + error.message;
+    const text = textInput.value.trim();
+    if (!text) {
+        throw new Error('Inserisci un messaggio prima di inviare.');
     }
+    const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+    });
+    if (!response.ok) {
+        throw new Error('Errore POST: ' + response.status);
+    }
+    const data = await response.json();
+    resultEl.textContent = 'Messaggio inserito:\n' + JSON.stringify(data, null, 2);
+    setStatus('POST completato con successo.', 'success');
+    textInput.value = '';
 }
+
 async function deleteMessage() {
-    try {
-        const text = document.getElementById("deleteText").value;
-
-        const response = await fetch("/api/messages", {
-            method: "DELETE",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ text: text })
-        });
-
-        if (!response.ok) {
-            throw new Error("Errore HTTP: " + response.status);
-        }
-
-        document.getElementById("result").innerText =
-            "Messaggio cancellato: " + text;
-
-    } catch (error) {
-        document.getElementById("result").innerText =
-            "Errore DELETE: " + error.message;
+    const text = deleteInput.value.trim();
+    if (!text) {
+        throw new Error('Inserisci il testo del messaggio da cancellare.');
     }
+    const response = await fetch('/api/messages', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+    });
+    if (!response.ok) {
+        throw new Error('Errore DELETE: ' + response.status);
+    }
+    resultEl.textContent = 'Messaggio cancellato: ' + text;
+    setStatus('DELETE completato con successo.', 'success');
+    deleteInput.value = '';
 }
 </script>
 </body>
